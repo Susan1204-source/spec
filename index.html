@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans,system-ui);}
+#lock-screen{position:fixed;inset:0;background:#f8f8f6;display:flex;align-items:center;justify-content:center;z-index:9999;}
+#lock-screen.hidden{display:none;}
+.lock-box{width:320px;text-align:center;}
+.lock-icon{width:48px;height:48px;margin:0 auto 20px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;}
+.lock-icon svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.lock-title{font-size:16px;font-weight:500;color:#111;margin-bottom:6px;}
+.lock-sub{font-size:13px;color:#888;margin-bottom:28px;}
+.lock-input-wrap{position:relative;margin-bottom:12px;}
+.lock-input{width:100%;padding:11px 44px 11px 14px;border:1px solid #ddd;border-radius:10px;font-size:14px;outline:none;background:#fff;color:#111;transition:border-color .15s;font-family:inherit;}
+.lock-input:focus{border-color:#111;}
+.lock-input.error{border-color:#E24B4A;animation:shake .3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.toggle-pw{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#aaa;padding:4px;}
+.toggle-pw:hover{color:#555;}
+.lock-btn{width:100%;padding:11px;background:#111;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s;}
+.lock-btn:hover{opacity:.85;}
+.lock-err{font-size:12px;color:#E24B4A;margin-top:8px;min-height:18px;}
+.app{padding:1.5rem 0;max-width:1080px;}
+h1{font-size:22px;font-weight:500;color:var(--color-text-primary,#111);margin-bottom:3px;}
+.sub{font-size:13px;color:var(--color-text-secondary,#666);margin-bottom:1.25rem;}
+.main-tabs{display:flex;margin-bottom:1.5rem;border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.main-tab{padding:8px 18px;font-size:13px;cursor:pointer;color:var(--color-text-secondary,#666);background:transparent;border:none;border-bottom:2px solid transparent;font-family:inherit;transition:all .15s;margin-bottom:-0.5px;}
+.main-tab.on{color:var(--color-text-primary,#111);border-bottom-color:var(--color-text-primary,#111);font-weight:500;}
+.ptabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center;}
+.ptab{padding:5px 13px;border-radius:8px;border:0.5px solid var(--color-border-secondary,#ccc);background:transparent;font-size:13px;cursor:pointer;color:var(--color-text-secondary,#666);font-family:inherit;transition:all .15s;}
+.ptab.on{background:var(--color-text-primary,#111);color:var(--color-background-primary,#fff);border-color:transparent;font-weight:500;}
+.btn{padding:6px 13px;border-radius:8px;border:0.5px solid var(--color-border-secondary,#ccc);background:transparent;font-size:13px;cursor:pointer;color:var(--color-text-primary,#111);font-family:inherit;white-space:nowrap;transition:background .15s;}
+.btn:hover{background:var(--color-background-secondary,#f5f5f5);}
+.btn.ai{border-color:#AFA9EC;color:#3C3489;background:#EEEDFE;}
+.btn.prim{background:var(--color-text-primary,#111);color:var(--color-background-primary,#fff);border-color:transparent;}
+.btn.grn{border-color:#97C459;color:#27500A;background:#EAF3DE;}
+.btn.red{border-color:#F09595;color:#791F1F;background:#FCEBEB;}
+.upload-zone{border:1.5px dashed var(--color-border-secondary,#ccc);border-radius:12px;padding:1.25rem;text-align:center;cursor:pointer;transition:background .15s;margin-bottom:10px;}
+.upload-zone:hover,.upload-zone.drag{background:var(--color-background-secondary,#f5f5f5);}
+.file-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;}
+.fchip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;border:0.5px solid var(--color-border-tertiary,#e0e0e0);background:var(--color-background-secondary,#f5f5f5);font-size:12px;}
+.fchip .fn{color:var(--color-text-primary,#111);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fchip .fi{font-size:10px;color:#534AB7;background:#EEEDFE;border-radius:6px;padding:1px 5px;}
+.fchip .fsz{color:var(--color-text-secondary,#666);}
+.fchip button{background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;}
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center;}
+.divider{width:1px;height:18px;background:var(--color-border-secondary,#ccc);}
+.card{background:var(--color-background-primary,#fff);border-radius:12px;border:0.5px solid var(--color-border-tertiary,#e0e0e0);margin-bottom:1.25rem;overflow:hidden;}
+.card-head{padding:9px 14px;background:var(--color-background-secondary,#f5f5f5);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.card-head-label{font-size:11px;font-weight:500;color:var(--color-text-secondary,#666);text-transform:uppercase;letter-spacing:.04em;}
+.verdict{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;}
+.vp{background:#EAF3DE;color:#27500A;}.vf{background:#FCEBEB;color:#791F1F;}
+.sup-meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));}
+.sup-card{padding:10px 14px;border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.sup-name-inp{font-size:13px;font-weight:500;background:transparent;border:none;border-bottom:0.5px solid transparent;outline:none;font-family:inherit;width:100%;transition:border-color .15s;margin-bottom:6px;color:var(--color-text-primary,#111);}
+.sup-name-inp:hover,.sup-name-inp:focus{border-bottom-color:var(--color-border-secondary,#ccc);}
+.meta-label{font-size:10px;color:var(--color-text-secondary,#666);}
+.meta-inp{font-size:12px;background:transparent;border:none;border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);outline:none;font-family:inherit;color:var(--color-text-primary,#111);padding:2px 0;width:100%;}
+table{width:100%;border-collapse:collapse;}
+th,td{border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);padding:0;}
+tr:last-child td{border-bottom:none;}
+.th-corner{padding:9px 12px;background:var(--color-background-secondary,#f5f5f5);border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);font-size:11px;color:var(--color-text-secondary,#666);min-width:120px;}
+.th-specval{padding:9px 12px;background:var(--color-background-secondary,#f5f5f5);border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);font-size:11px;color:var(--color-text-secondary,#666);text-align:center;white-space:nowrap;}
+.th-sup{padding:9px 12px;text-align:center;border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.th-sup:last-child{border-right:none;}
+.th-sup .sn{font-size:13px;font-weight:500;color:var(--color-text-primary,#111);}
+.th-sup .sm{font-size:10px;color:var(--color-text-secondary,#666);margin-top:1px;}
+.group-hd td{background:var(--color-background-secondary,#f5f5f5);}
+.rl{padding:8px 12px;font-size:12px;color:var(--color-text-secondary,#666);background:var(--color-background-secondary,#f5f5f5);border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.sv{padding:8px 12px;font-size:11px;color:var(--color-text-secondary,#666);background:var(--color-background-secondary,#f5f5f5);border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);text-align:center;white-space:nowrap;}
+.cv{padding:0;border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);text-align:center;}
+.cv:last-child{border-right:none;}
+.cv input{width:100%;background:transparent;border:none;outline:none;font-family:inherit;font-size:13px;color:var(--color-text-primary,#111);text-align:center;padding:8px 10px;}
+.cv input::placeholder{color:var(--color-text-secondary,#999);}
+.cv.tighter{background:#FCEBEB;}.cv.tighter input{color:#791F1F;font-weight:500;}
+.cv.extra{background:#FFF3E0;}.cv.extra input{color:#7A4500;}
+.cv.best{background:#EAF3DE;}.cv.best input{color:#27500A;}
+.count-row td{background:var(--color-background-secondary,#f5f5f5);border-top:1px solid var(--color-border-secondary,#ccc);}
+.count-cell{padding:7px 10px;text-align:center;border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.count-cell:last-child{border-right:none;}
+.cb-red{display:inline-block;background:#F7C1C1;color:#791F1F;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;}
+.cb-ora{display:inline-block;background:#FAC775;color:#633806;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;}
+.legend-row{display:flex;gap:14px;padding:8px 14px;background:var(--color-background-secondary,#f5f5f5);border-top:0.5px solid var(--color-border-tertiary,#e0e0e0);flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary,#666);}
+.leg-sw{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+.chart-inner{padding:1rem 1.25rem;}
+.sec-lbl{font-size:11px;font-weight:500;color:var(--color-text-secondary,#666);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.leg-i{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--color-text-secondary,#666);}
+.leg-dot{width:10px;height:10px;border-radius:2px;}
+.ai-box{border-radius:12px;border:0.5px solid #AFA9EC;background:#EEEDFE;padding:1rem 1.25rem;margin-bottom:1.25rem;}
+.ai-hd{font-size:13px;font-weight:500;color:#3C3489;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.ai-bd{font-size:13px;color:#534AB7;line-height:1.7;white-space:pre-wrap;}
+.spin{display:inline-block;width:12px;height:12px;border:1.5px solid #AFA9EC;border-top-color:#534AB7;border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.saved-badge{font-size:11px;color:#27500A;background:#EAF3DE;border-radius:10px;padding:2px 8px;display:none;}
+.bd-layout{display:grid;grid-template-columns:220px 1fr;min-height:400px;}
+.bd-list-panel{border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);overflow-y:auto;max-height:700px;}
+.bd-list-hdr{padding:8px 12px;font-size:11px;font-weight:500;color:var(--color-text-secondary,#666);text-transform:uppercase;letter-spacing:.04em;background:var(--color-background-secondary,#f5f5f5);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.bd-grp-lbl{padding:5px 12px;font-size:11px;color:var(--color-text-secondary,#666);background:var(--color-background-secondary,#f5f5f5);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.bd-item{display:flex;align-items:flex-start;gap:7px;padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);transition:background .12s;}
+.bd-item:hover{background:var(--color-background-secondary,#f5f5f5);}
+.bd-item.sel{background:var(--color-background-secondary,#f5f5f5);border-left:2px solid var(--color-text-primary,#111);padding-left:10px;}
+.bd-item-name{font-size:13px;font-weight:500;color:var(--color-text-primary,#111);}
+.bd-item-meta{font-size:11px;color:var(--color-text-secondary,#666);margin-top:2px;}
+.bd-detail-scroll{overflow-y:auto;max-height:700px;}
+.bd-detail-hdr{padding:9px 14px;background:var(--color-background-secondary,#f5f5f5);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;}
+.bd-empty{display:flex;align-items:center;justify-content:center;height:200px;font-size:13px;color:var(--color-text-secondary,#666);}
+.bd-th{padding:8px 12px;background:var(--color-background-secondary,#f5f5f5);border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);font-size:11px;color:var(--color-text-secondary,#666);text-align:center;white-space:nowrap;}
+.bd-th.left{text-align:left;}.bd-th:last-child{border-right:none;}
+.bd-td-label{padding:8px 12px;font-size:12px;color:var(--color-text-secondary,#666);background:var(--color-background-secondary,#f5f5f5);border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);white-space:nowrap;}
+.bd-td{padding:5px 8px;border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);text-align:center;vertical-align:middle;}
+.bd-td:last-child{border-right:none;}
+.bd-td select,.bd-td input[type=number]{background:transparent;border:none;border-bottom:0.5px solid transparent;outline:none;font-family:inherit;font-size:12px;color:var(--color-text-primary,#111);text-align:center;padding:3px 4px;transition:border-color .15s;}
+.bd-td select:hover,.bd-td select:focus,.bd-td input:hover,.bd-td input:focus{border-bottom-color:var(--color-border-secondary,#ccc);}
+.bd-td input[type=number]{width:85px;}
+.bd-td.fail-cell{background:#FCEBEB;}
+.spec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));}
+.spec-cell{padding:8px 12px;border-right:0.5px solid var(--color-border-tertiary,#e0e0e0);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.spec-cell-label{font-size:11px;color:var(--color-text-secondary,#666);margin-bottom:5px;}
+.spec-cell-row{display:flex;align-items:center;gap:4px;}
+.spec-sel,.spec-unit-sel{border:none;border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);background:transparent;outline:none;cursor:pointer;font-family:inherit;padding:2px;color:var(--color-text-primary,#111);}
+.spec-sel{font-size:12px;}.spec-unit-sel{font-size:11px;color:var(--color-text-secondary,#666);}
+.spec-num{width:68px;font-size:12px;height:26px;}
+.orig-section{padding:1rem 1.25rem;border-top:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.orig-section-lbl{font-size:11px;font-weight:500;color:var(--color-text-secondary,#666);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+.orig-file-block{margin-bottom:16px;}
+.orig-file-name{font-size:11px;color:var(--color-text-secondary,#666);padding:5px 0;margin-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.orig-page-wrap{margin-bottom:8px;border-radius:8px;border:0.5px solid var(--color-border-tertiary,#e0e0e0);overflow:hidden;}
+.orig-page-label{font-size:10px;color:var(--color-text-secondary,#666);padding:3px 8px;background:var(--color-background-secondary,#f5f5f5);border-bottom:0.5px solid var(--color-border-tertiary,#e0e0e0);}
+.orig-page-wrap img{width:100%;display:block;}
+.orig-page-wrap canvas{width:100%;display:block;}
+.pdf-loading{padding:16px;text-align:center;font-size:12px;color:var(--color-text-secondary,#666);}
+</style>
+</head><body>
+<div class="app">
+  <h1>화학제품 품질 분석 비교</h1>
+  <p class="sub">마스터 Spec 대비 공급사 Spec 비교 · 파일명 업체명 자동 매칭 · Back Data 원본 보관</p>
+  <div class="main-tabs">
+    <button class="main-tab on" onclick="switchTab('compare',this)">비교 분석</button>
+    <button class="main-tab" onclick="switchTab('backdata',this)">Back Data</button>
+  </div>
+  <div id="tab-compare">
+    <div class="ptabs">
+      <span style="font-size:12px;color:var(--color-text-secondary,#666);margin-right:2px;">제품:</span>
+      <button class="ptab on" onclick="setProd('NiSO4',this)">황산니켈 NiSO₄</button>
+      <button class="ptab" onclick="setProd('CoSO4',this)">황산코발트 CoSO₄</button>
+      <button class="ptab" onclick="setProd('MnSO4',this)">황산망간 MnSO₄</button>
+      <button class="ptab" onclick="setProd('Li2CO3',this)">탄산리튬 Li₂CO₃</button>
+    </div>
+    <div class="upload-zone" id="dz" onclick="document.getElementById('fi').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
+      <input type="file" id="fi" multiple accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv" style="display:none" onchange="onFiles(this.files)">
+      <div style="font-size:13px;font-weight:500;margin-bottom:2px;">파일 드래그 또는 클릭하여 업로드</div>
+      <div style="font-size:12px;color:var(--color-text-secondary,#666);">PDF · 이미지 · Excel · CSV · 파일명에 업체명 포함 시 자동 매칭</div>
+    </div>
+    <div class="file-list" id="file-list"></div>
+    <div class="action-bar">
+      <button class="btn prim" id="ocr-btn" onclick="runOCR()" style="display:none;">✦ AI 자동 인식</button>
+      <button class="btn" onclick="addSample()">샘플 데이터</button>
+      <button class="btn" onclick="addSupplierManual()">+ 공급사 추가</button>
+      <div class="divider"></div>
+      <button class="btn ai" onclick="runReport()">✦ 분석 리포트</button>
+      <div class="divider"></div>
+      <button class="btn grn" onclick="exportExcel()">↓ Excel 내보내기</button>
+      <div class="divider"></div>
+      <button class="btn" onclick="clearCompare()">초기화</button>
+      <span class="saved-badge" id="saved-badge">저장됨</span>
+    </div>
+    <div id="ocr-box" class="ai-box" style="display:none;">
+      <div class="ai-hd"><div class="spin" id="ocr-spin"></div><span id="ocr-ht">인식 중...</span></div>
+      <div class="ai-bd" id="ocr-bd"></div>
+    </div>
+    <div class="card" id="spec-card" style="display:none;">
+      <div class="card-head">
+        <span class="card-head-label">공통 Spec 기준치 (마스터) <span style="font-size:10px;font-weight:400;text-transform:none;">· 단위 변경 시 자동 환산</span></span>
+        <button class="btn" style="padding:3px 10px;font-size:12px;" onclick="toggleSpec()" id="spec-toggle-btn">접기 ▲</button>
+      </div>
+      <div id="spec-body"><div class="spec-grid" id="spec-grid"></div></div>
+    </div>
+    <div class="card" id="sup-meta-card" style="display:none;">
+      <div class="card-head"><span class="card-head-label">공급사 정보</span></div>
+      <div class="sup-meta-grid" id="sup-meta-grid"></div>
+    </div>
+    <div class="card" id="tbl-card" style="display:none;">
+      <div class="card-head"><span class="card-head-label">분석 수치 비교</span></div>
+      <div style="overflow-x:auto;"><table id="ctbl"></table></div>
+      <div class="legend-row">
+        <span class="leg-item"><span class="leg-sw" style="background:#FCEBEB;border:0.5px solid #F09595;"></span>공급사 Spec이 마스터보다 타이트</span>
+        <span class="leg-item"><span class="leg-sw" style="background:#FFF3E0;border:0.5px solid #FAC775;"></span>마스터에 없는 성분</span>
+        <span class="leg-item"><span class="leg-sw" style="background:#EAF3DE;border:0.5px solid #97C459;"></span>최적값</span>
+      </div>
+    </div>
+    <div class="card" id="chart-card" style="display:none;">
+      <div class="chart-inner">
+        <div class="sec-lbl">Impurity 함량 비교</div>
+        <div class="legend" id="cleg"></div>
+        <div style="position:relative;width:100%;height:260px;"><canvas id="imp-chart"></canvas></div>
+      </div>
+    </div>
+    <div id="rep-box" class="ai-box" style="display:none;">
+      <div class="ai-hd"><div class="spin" id="rep-spin" style="display:none;"></div><span>✦ 분석 리포트</span></div>
+      <div class="ai-bd" id="rep-bd"></div>
+    </div>
+  </div>
+  <div id="tab-backdata" style="display:none;">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-head-label">Back Data 관리</span>
+        <button class="btn red" style="font-size:12px;padding:3px 10px;" onclick="deleteSelectedBd()">선택 삭제</button>
+      </div>
+      <div class="bd-layout">
+        <div class="bd-list-panel">
+          <div class="bd-list-hdr">업체 목록</div>
+          <div id="bd-list"><div style="padding:20px;font-size:12px;text-align:center;">데이터 없음</div></div>
+        </div>
+        <div style="overflow:hidden;">
+          <div class="bd-detail-scroll">
+            <div id="bd-detail-inner"><div class="bd-empty">목록에서 업체를 선택하세요</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const DEF={
+  NiSO4:{name:'황산니켈',formula:'NiSO₄',main:[{key:'Ni',label:'Ni 함량',defOp:'≥',defSpec:22.0,defUnit:'wt%'}],imp:[{key:'Co',label:'Co',defOp:'≤',defSpec:0.005,defUnit:'wt%'},{key:'Mn',label:'Mn',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'Fe',label:'Fe',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Cu',label:'Cu',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Zn',label:'Zn',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Na',label:'Na',defOp:'≤',defSpec:0.005,defUnit:'wt%'},{key:'Ca',label:'Ca',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'Mg',label:'Mg',defOp:'≤',defSpec:0.002,defUnit:'wt%'}]},
+  CoSO4:{name:'황산코발트',formula:'CoSO₄',main:[{key:'Co',label:'Co 함량',defOp:'≥',defSpec:20.5,defUnit:'wt%'}],imp:[{key:'Ni',label:'Ni',defOp:'≤',defSpec:0.005,defUnit:'wt%'},{key:'Mn',label:'Mn',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'Fe',label:'Fe',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Cu',label:'Cu',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Na',label:'Na',defOp:'≤',defSpec:0.005,defUnit:'wt%'},{key:'Ca',label:'Ca',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'Mg',label:'Mg',defOp:'≤',defSpec:0.002,defUnit:'wt%'}]},
+  MnSO4:{name:'황산망간',formula:'MnSO₄',main:[{key:'Mn',label:'Mn 함량',defOp:'≥',defSpec:31.5,defUnit:'wt%'}],imp:[{key:'Fe',label:'Fe',defOp:'≤',defSpec:0.002,defUnit:'wt%'},{key:'Ni',label:'Ni',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'Co',label:'Co',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'Cu',label:'Cu',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Na',label:'Na',defOp:'≤',defSpec:0.005,defUnit:'wt%'},{key:'Ca',label:'Ca',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'Zn',label:'Zn',defOp:'≤',defSpec:0.002,defUnit:'wt%'}]},
+  Li2CO3:{name:'탄산리튬',formula:'Li₂CO₃',main:[{key:'Li2CO3',label:'Li₂CO₃ 순도',defOp:'≥',defSpec:99.5,defUnit:'wt%'}],imp:[{key:'Na',label:'Na',defOp:'≤',defSpec:0.003,defUnit:'wt%'},{key:'K',label:'K',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Ca',label:'Ca',defOp:'≤',defSpec:0.002,defUnit:'wt%'},{key:'Mg',label:'Mg',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Fe',label:'Fe',defOp:'≤',defSpec:0.001,defUnit:'wt%'},{key:'Cu',label:'Cu',defOp:'≤',defSpec:0.0005,defUnit:'wt%'},{key:'SO4',label:'SO₄',defOp:'≤',defSpec:0.01,defUnit:'wt%'},{key:'Cl',label:'Cl',defOp:'≤',defSpec:0.005,defUnit:'wt%'}]}
+};
+const COLORS=['#378ADD','#1D9E75','#D85A30','#7F77DD','#BA7517','#993556','#5DCAA5','#EF9F27'];
+const OPS=['≤','≥','=','<','>'];
+const UNITS=['wt%','%','ppm','ppb','mg/kg','mg/L'];
+const TO_BASE={'wt%':1,'%':1,'ppm':1e-4,'ppb':1e-7,'mg/kg':1e-4,'mg/L':1e-4};
+
+function convertUnit(v,from,to){if(from===to||isNaN(v))return v;const fb=TO_BASE[from],tb=TO_BASE[to];if(!fb||!tb)return v;return v*(fb/tb);}
+function fmtNum(v){if(isNaN(v)||v===''||v===null)return'';if(Math.abs(v)<0.001&&v!==0)return parseFloat(v.toPrecision(4)).toString();return parseFloat(v.toPrecision(6)).toString();}
+
+/* 타이트 판정: 합격 범위가 마스터보다 좁은지 */
+function isTighter(mOp,mVal,sOp,sVal){
+  if(mOp!==sOp)return false;
+  const m=parseFloat(mVal),s=parseFloat(sVal);
+  if(isNaN(m)||isNaN(s))return false;
+  if(mOp==='≥'||mOp='>') return s>m;
+  if(mOp==='≤'||mOp==='<') return s<m;
+  return false;
+}
+
+let cur='NiSO4',compareData={},specs={},files=[],chart=null,specOpen=true,backData=[],selBdId=null,bdSelIds=new Set(),mediaFileStore=[];
+
+function initSpecs(){Object.keys(DEF).forEach(p=>{specs[p]={};DEF[p].main.forEach(m=>specs[p][m.key]={op:m.defOp,val:m.defSpec,unit:m.defUnit,isMain:true});DEF[p].imp.forEach(im=>specs[p][im.key]={op:im.defOp,val:im.defSpec,unit:im.defUnit,isMain:false});});}
+function saveAll(){try{localStorage.setItem('chem_specs_v9',JSON.stringify(specs));localStorage.setItem('chem_bd_v9',JSON.stringify(backData));showBadge();}catch(e){}}
+function loadAll(){try{const s=localStorage.getItem('chem_specs_v9');if(s)Object.assign(specs,JSON.parse(s));}catch(e){}try{const b=localStorage.getItem('chem_bd_v9');if(b)backData=JSON.parse(b);}catch(e){}}
+function showBadge(){const b=document.getElementById('saved-badge');b.style.display='inline-block';clearTimeout(b._t);b._t=setTimeout(()=>b.style.display='none',2000);}
+initSpecs();loadAll();
+
+function switchTab(tab,el){document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('tab-compare').style.display=tab==='compare'?'block':'none';document.getElementById('tab-backdata').style.display=tab==='backdata'?'block':'none';if(tab==='backdata')renderBdList();}
+function setProd(p,el){cur=p;document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderCompare();}
+function getProd(){return DEF[cur];}
+function getRows(){return compareData[cur]||[];}
+
+function onSpecUnitChange(p,key,newUnit){
+  const oldUnit=specs[p][key].unit;if(oldUnit===newUnit)return;
+  backData.filter(b=>b.product===p).forEach(b=>{const r=b.bdRows&&b.bdRows.find(r=>r.key===key);if(!r)return;const cv=convertUnit(parseFloat(r.value),oldUnit,newUnit);r.value=isNaN(cv)?r.value:cv;r.measuredUnit=newUnit;const sv=convertUnit(parseFloat(r.specVal),oldUnit,newUnit);r.specVal=isNaN(sv)?r.specVal:sv;r.specUnit=newUnit;r.unit=newUnit;const ci=(compareData[p]||[]).findIndex(x=>x.name===b.name);if(ci>=0){if(r.group==='main')compareData[p][ci].main[key]=r.value;else compareData[p][ci].imp[key]=r.value;}if(r.group==='main')b.main[key]=r.value;else b.imp[key]=r.value;});
+  specs[p][key].unit=newUnit;
+}
+function onSpecValChange(p,key,v){specs[p][key].val=v;backData.filter(b=>b.product===p).forEach(b=>{const r=b.bdRows&&b.bdRows.find(r=>r.key===key);if(r)r.specVal=v;});}
+
+function checkPass(row,p){for(const m of DEF[p].main){const v=parseFloat(row.main[m.key]);const s=specs[p][m.key];if(isNaN(v))continue;if(s.op==='≤'&&v>s.val)return false;if(s.op==='≥'&&v<s.val)return false;if(s.op==='='&&v!==s.val)return false;if(s.op==='<'&&v>=s.val)return false;if(s.op==='>'&&v<=s.val)return false;}for(const im of DEF[p].imp){const v=parseFloat(row.imp[im.key]);const s=specs[p][im.key];if(isNaN(v))continue;if(s.op==='≤'&&v>s.val)return false;if(s.op==='≥'&&v<s.val)return false;if(s.op==='='&&v!==s.val)return false;if(s.op==='<'&&v>=s.val)return false;if(s.op==='>'&&v<=s.val)return false;}return true;}
+function isPass(row){return checkPass(row,cur);}
+
+function getSupSpec(name,key){const bd=backData.find(b=>b.product===cur&&b.name===name);if(!bd||!bd.bdRows)return null;const r=bd.bdRows.find(r=>r.key===key);return r?{op:r.op,val:parseFloat(r.specVal)}:null;}
+
+function renderCompare(){const rows=getRows();if(!rows.length){clearCompareView();renderSpecPanel();return;}renderSpecPanel();renderSupMeta(rows);renderTable(rows);renderChart(rows);}
+function clearCompareView(){['tbl-card','chart-card','sup-meta-card'].forEach(id=>document.getElementById(id).style.display='none');if(chart){chart.destroy();chart=null;}}
+
+function renderSpecPanel(){
+  const prod=getProd();
+  document.getElementById('spec-grid').innerHTML=[...prod.main.map(m=>({...m})),...prod.imp.map(im=>({...im}))].map(item=>{const s=specs[cur][item.key];return`<div class="spec-cell"><div class="spec-cell-label">${item.label}</div><div class="spec-cell-row"><select class="spec-sel" onchange="specs['${cur}']['${item.key}'].op=this.value;saveAll();renderCompare()">${OPS.map(o=>`<option ${s.op===o?'selected':''}>${o}</option>`).join('')}</select><input class="spec-num" type="number" step="any" value="${s.val}" onchange="onSpecValChange('${cur}','${item.key}',parseFloat(this.value));saveAll();renderCompare()"><select class="spec-unit-sel" onchange="onSpecUnitChange('${cur}','${item.key}',this.value);saveAll();renderCompare();if(selBdId){const b=backData.find(x=>x.id==selBdId);if(b)renderBdDetail(b);}">${UNITS.map(u=>`<option ${s.unit===u?'selected':''}>${u}</option>`).join('')}</select></div></div>`;}).join('');
+  document.getElementById('spec-card').style.display='block';
+  document.getElementById('spec-body').style.display=specOpen?'block':'none';
+  document.getElementById('spec-toggle-btn').textContent=specOpen?'접기 ▲':'펼치기 ▼';
+}
+function toggleSpec(){specOpen=!specOpen;renderSpecPanel();}
+
+function renderSupMeta(rows){
+  document.getElementById('sup-meta-grid').innerHTML=rows.map((r,i)=>`<div class="sup-card"><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><input class="sup-name-inp" value="${r.name}" placeholder="공급사명" onchange="compareData['${cur}'][${i}].name=this.value;renderCompare()"><button style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;" onclick="delSupplier(${i})">×</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;"><div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:80px;"><span class="meta-label">분석일자</span><input class="meta-inp" type="date" value="${r.date||''}" onchange="compareData['${cur}'][${i}].date=this.value"></div><div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:80px;"><span class="meta-label">Note</span><input class="meta-inp" value="${r.note||''}" placeholder="—" onchange="compareData['${cur}'][${i}].note=this.value"></div></div><div class="verdict ${isPass(r)?'vp':'vf'}" style="margin-top:6px;">${isPass(r)?'합격':'불합격'}</div></div>`).join('');
+  document.getElementById('sup-meta-card').style.display='block';
+}
+
+function renderTable(rows){
+  const prod=getProd();const sp=specs[cur];
+  const masterKeys=new Set([...prod.main.map(m=>m.key),...prod.imp.map(im=>im.key)]);
+  /* extra keys from backdata */
+  const allKeys=new Set([...masterKeys]);
+  rows.forEach(r=>{const bd=backData.find(b=>b.product===cur&&b.name===r.name);if(bd&&bd.bdRows)bd.bdRows.forEach(br=>allKeys.add(br.key));});
+  const extraKeys=[...allKeys].filter(k=>!masterKeys.has(k));
+
+  const tighterCount=rows.map(()=>0);
+  const extraCount=rows.map(()=>0);
+
+  let h='<thead><tr>';
+  h+=`<th><div class="th-corner">항목</div></th><th><div class="th-specval">마스터 Spec</div></th>`;
+  rows.forEach(r=>{h+=`<th><div class="th-sup"><div class="sn">${r.name}</div><div class="sm">${r.date||prod.formula}</div></div></th>`;});
+  h+='</tr></thead><tbody>';
+
+  const renderSection=(items,grp)=>{
+    items.forEach(item=>{
+      const key=item.key;const s=sp[key]||{op:'?',val:'?',unit:''};
+      h+=`<tr><td><div class="rl">${item.label}</div></td><td><div class="sv">${s.op} ${s.val} ${s.unit}</div></td>`;
+      const vals=rows.map(r=>parseFloat(grp==='main'?r.main[key]:r.imp[key]));
+      const vv=vals.filter(v=>!isNaN(v));
+      const best=vv.length?(s.op==='≥'?Math.max(...vv):Math.min(...vv)):null;
+      rows.forEach((r,i)=>{
+        const v=vals[i];let cls='';
+        const ss=getSupSpec(r.name,key);
+        if(ss&&isTighter(s.op,s.val,ss.op,ss.val)){tighterCount[i]++;cls='tighter';}
+        else if(!isNaN(v)&&v===best)cls='best';
+        h+=`<td><div class="cv ${cls}"><input type="text" value="${isNaN(v)?'':fmtNum(v)}" placeholder="—" onchange="updateCompareVal(${i},'${grp}','${key}',this.value)"></div></td>`;
+      });
+      h+='</tr>';
+    });
+  };
+
+  h+=`<tr class="group-hd"><td colspan="${rows.length+2}"><div class="rl" style="font-weight:500;">주성분</div></td></tr>`;renderSection(prod.main,'main');
+  h+=`<tr class="group-hd"><td colspan="${rows.length+2}"><div class="rl" style="font-weight:500;">Impurity</div></td></tr>`;renderSection(prod.imp,'imp');
+
+  if(extraKeys.length){
+    h+=`<tr class="group-hd"><td colspan="${rows.length+2}"><div class="rl" style="font-weight:500;">추가 성분 (마스터 미포함)</div></td></tr>`;
+    extraKeys.forEach(key=>{
+      const label=key;
+      h+=`<tr><td><div class="rl">${label}</div></td><td><div class="sv" style="color:#BA7517;">—</div></td>`;
+      rows.forEach((r,i)=>{
+        const bd=backData.find(b=>b.product===cur&&b.name===r.name);
+        const bdr=bd&&bd.bdRows&&bd.bdRows.find(br=>br.key===key);
+        const v=bdr?parseFloat(bdr.value):NaN;
+        extraCount[i]++;
+        h+=`<td><div class="cv extra"><input type="text" value="${isNaN(v)?'':fmtNum(v)}" placeholder="—" readonly style="cursor:default;"></div></td>`;
+      });
+      h+='</tr>';
+    });
+  }
+
+  h+=`<tr class="count-row"><td colspan="2"><div class="rl" style="font-weight:500;font-size:11px;">항목 현황</div></td>`;
+  rows.forEach((r,i)=>{
+    h+=`<td><div class="count-cell">`;
+    if(tighterCount[i]>0)h+=`<span class="cb-red">🔴 타이트 ${tighterCount[i]}</span> `;
+    if(extraCount[i]>0)h+=`<span class="cb-ora">🟠 추가 ${extraCount[i]}</span>`;
+    if(!tighterCount[i]&&!extraCount[i])h+=`<span style="font-size:11px;color:#999;">—</span>`;
+    h+=`</div></td>`;
+  });
+  h+='</tr></tbody>';
+  document.getElementById('ctbl').innerHTML=h;document.getElementById('tbl-card').style.display='block';
+}
+
+function updateCompareVal(i,grp,key,val){const v=parseFloat(val);if(grp==='main')compareData[cur][i].main[key]=v;else compareData[cur][i].imp[key]=v;const name=compareData[cur][i].name;const bd=backData.find(b=>b.product===cur&&b.name===name);if(bd){const r=bd.bdRows&&bd.bdRows.find(r=>r.key===key);if(r){r.value=v;r.measuredUnit=specs[cur][key]?.unit||r.unit;}if(grp==='main')bd.main[key]=v;else bd.imp[key]=v;}saveAll();renderCompare();}
+
+function renderChart(rows){
+  const prod=getProd();const sp=specs[cur];document.getElementById('chart-card').style.display='block';
+  const labels=prod.imp.map(im=>im.label);const datasets=rows.map((r,i)=>({label:r.name,data:prod.imp.map(im=>{const v=parseFloat(r.imp[im.key]);return isNaN(v)?0:v;}),backgroundColor:COLORS[i%COLORS.length]+'BB',borderColor:COLORS[i%COLORS.length],borderWidth:1}));
+  document.getElementById('cleg').innerHTML=rows.map((r,i)=>`<span class="leg-i"><span class="leg-dot" style="background:${COLORS[i%COLORS.length]};"></span>${r.name}</span>`).join('')+`<span class="leg-i"><span style="display:inline-block;width:18px;height:2px;background:#E24B4A;"></span>Spec</span>`;
+  if(chart)chart.destroy();
+  chart=new Chart(document.getElementById('imp-chart'),{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(128,128,128,0.1)'},ticks:{font:{size:11}}},y:{grid:{color:'rgba(128,128,128,0.1)'},beginAtZero:true,ticks:{font:{size:11},callback:v=>parseFloat(v.toPrecision(4))}}}},plugins:[{id:'sl',afterDraw(ch){const ctx=ch.ctx,yA=ch.scales.y;ctx.save();ctx.setLineDash([4,3]);ctx.strokeStyle='#E24B4A';ctx.lineWidth=1.5;prod.imp.forEach((im,idx)=>{const s=sp[im.key];if(!s)return;const meta=ch.getDatasetMeta(0);if(!meta.data[idx])return;const x=meta.data[idx].x,bw=(meta.data[idx].width||20)*(rows.length+1);const yp=yA.getPixelForValue(s.val);ctx.beginPath();ctx.moveTo(x-bw/2,yp);ctx.lineTo(x+bw/2,yp);ctx.stroke();});ctx.restore();}}]});
+}
+
+/* 파일명에 업체명 포함 여부 */
+function matchFileToSupplier(fileName,names){
+  const fl=fileName.toLowerCase().replace(/[\s_\-\.]/g,'');
+  for(const n of names){const nl=n.toLowerCase().replace(/[\s_\-\.]/g,'');if(fl.includes(nl)||nl.includes(fl))return n;}
+  return null;
+}
+
+function onFiles(f){Array.from(f).forEach(file=>{if(!files.find(u=>u.name===file.name)){files.push(file);if(file.type.startsWith('image/')||file.type==='application/pdf'){const reader=new FileReader();reader.onload=e=>{if(!mediaFileStore.find(s=>s.name===file.name))mediaFileStore.push({name:file.name,type:file.type,dataUrl:e.target.result});};reader.readAsDataURL(file);}}});renderFileList();document.getElementById('ocr-btn').style.display=files.length?'inline-block':'none';document.getElementById('fi').value='';}
+function renderFileList(){document.getElementById('file-list').innerHTML=files.map((f,i)=>{const isMedia=f.type.startsWith('image/')||f.type==='application/pdf';return`<div class="fchip">${isMedia?`<span class="fi">${i+1}</span>`:''}<span class="fn">${f.name}</span><span class="fsz">${(f.size/1024).toFixed(0)}KB</span><button onclick="removeFile(${i})">×</button></div>`;}).join('');}
+function removeFile(i){files.splice(i,1);renderFileList();if(!files.length)document.getElementById('ocr-btn').style.display='none';}
+function onDrop(ev){ev.preventDefault();document.getElementById('dz').classList.remove('drag');onFiles(ev.dataTransfer.files);}
+async function parseExcel(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];res(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));}catch(e){res([]);}};r.readAsArrayBuffer(file);});}
+async function fileToB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
+
+async function runOCR(){
+  const prod=getProd();const spin=document.getElementById('ocr-spin');const ht=document.getElementById('ocr-ht');const bd=document.getElementById('ocr-bd');
+  document.getElementById('ocr-box').style.display='block';spin.style.display='inline-block';ht.textContent='파일 분석 중...';bd.textContent='';
+  let excelTxt='';for(const f of files.filter(f=>f.name.match(/\.(xlsx|xls|csv)$/i))){const aoa=await parseExcel(f);if(aoa.length){excelTxt+=`[${f.name}]\n`;aoa.forEach(row=>{excelTxt+=row.join('\t')+'\n';});}}
+  const mediaFiles=files.filter(f=>f.name.match(/\.(pdf|png|jpg|jpeg)$/i));
+  const mainKeys=prod.main.map(m=>m.key);const impKeys=prod.imp.map(im=>im.key);
+  const parts=[{type:'text',text:`${prod.name}(${prod.formula}) 분석 성적서. 행=항목, 열=공급사.\n주성분: ${mainKeys.join(', ')}\nImpurity: ${impKeys.join(', ')}\n${excelTxt?'Excel:\n'+excelTxt:''}\n단위도 인식해서 JSON으로만 응답:\n{"suppliers":[{"name":"공급사","date":"","note":"","main":{"Ni":22.3,"Ni_unit":"wt%"},"imp":{"Co":50,"Co_unit":"ppm"}}]}`}];
+  for(const file of mediaFiles){try{const b64=await fileToB64(file);parts.push({type:file.type==='application/pdf'?'document':'image',source:{type:'base64',media_type:file.type,data:b64}});}catch(e){}}
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:parts}]})});
+    const d=await resp.json();spin.style.display='none';
+    const txt=(d.content||[]).map(c=>c.text||'').join('');
+    try{
+      const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
+      if(parsed.suppliers&&parsed.suppliers.length){
+        if(!compareData[cur])compareData[cur]=[];
+        const now=new Date().toLocaleString('ko-KR');
+        const storedMedia=mediaFiles.map(f=>mediaFileStore.find(s=>s.name===f.name)).filter(Boolean);
+        const supplierNames=parsed.suppliers.map(s=>s.name||'공급사');
+        parsed.suppliers.forEach((s,si)=>{
+          const mainC={};const impC={};
+          prod.main.forEach(m=>{const rv=parseFloat(s.main?.[m.key]);const ru=s.main?.[m.key+'_unit']||specs[cur][m.key].unit;const mu=specs[cur][m.key].unit;mainC[m.key]=isNaN(rv)?'':convertUnit(rv,ru,mu);});
+          prod.imp.forEach(im=>{const rv=parseFloat(s.imp?.[im.key]);const ru=s.imp?.[im.key+'_unit']||specs[cur][im.key].unit;const mu=specs[cur][im.key].unit;impC[im.key]=isNaN(rv)?'':convertUnit(rv,ru,mu);});
+          const entry={name:s.name||'공급사',date:s.date||'',note:s.note||'',main:mainC,imp:impC};
+          const ci=compareData[cur].findIndex(x=>x.name===s.name);if(ci>=0)compareData[cur][ci]=entry;else compareData[cur].push(entry);
+          /* 파일명 매칭 우선, 없으면 순서 */
+          const nameMatch=storedMedia.find(sf=>matchFileToSupplier(sf.name,[s.name||'']));
+          const assignedFile=nameMatch||storedMedia[si]||null;
+          const bdEntry={id:Date.now()+Math.random(),name:s.name||'공급사',product:cur,uploadedAt:now,date:s.date||'',note:s.note||'',main:mainC,imp:impC,bdRows:buildBdRows(prod,cur,mainC,impC),sourceFiles:assignedFile?[assignedFile]:[]};
+          const bi=backData.findIndex(b=>b.name===s.name&&b.product===cur);if(bi>=0)backData[bi]=bdEntry;else backData.push(bdEntry);
+        });
+        saveAll();
+        ht.textContent=`인식 완료 — ${parsed.suppliers.length}개 공급사`;
+        bd.textContent=parsed.suppliers.map((s,si)=>{const nameMatch=storedMedia.find(sf=>matchFileToSupplier(sf.name,[s.name||'']));const mf=nameMatch||storedMedia[si];return`· ${s.name}${mf?' ← '+mf.name+(nameMatch?' (파일명 매칭)':' (순서 매칭)'):''}: ${Object.entries(s.main||{}).filter(([k])=>!k.endsWith('_unit')).map(([k,v])=>`${k}=${v}`).join(', ')}`;}).join('\n');
+        renderCompare();
+      } else {ht.textContent='데이터를 찾지 못했습니다';bd.textContent=txt;}
+    }catch(e){ht.textContent='AI 응답';bd.textContent=txt;}
+  }catch(e){spin.style.display='none';ht.textContent='오류';bd.textContent='파일 처리 중 오류가 발생했습니다.';}
+}
+
+function buildBdRows(prod,p,mainVals,impVals){return[...prod.main.map(m=>({key:m.key,label:m.label,group:'main',op:specs[p][m.key].op,specVal:specs[p][m.key].val,specUnit:specs[p][m.key].unit,unit:specs[p][m.key].unit,measuredUnit:specs[p][m.key].unit,value:mainVals[m.key]??''})),...prod.imp.map(im=>({key:im.key,label:im.label,group:'imp',op:specs[p][im.key].op,specVal:specs[p][im.key].val,specUnit:specs[p][im.key].unit,unit:specs[p][im.key].unit,measuredUnit:specs[p][im.key].unit,value:impVals[im.key]??''}))];}
+
+function renderBdList(){
+  const el=document.getElementById('bd-list');
+  if(!backData.length){el.innerHTML='<div style="padding:20px;font-size:12px;text-align:center;">데이터 없음</div>';document.getElementById('bd-detail-inner').innerHTML='<div class="bd-empty">목록에서 업체를 선택하세요</div>';return;}
+  const grouped={};backData.forEach(b=>{if(!grouped[b.product])grouped[b.product]=[];grouped[b.product].push(b);});
+  document.getElementById('bd-list').innerHTML=Object.keys(grouped).map(p=>`<div class="bd-grp-lbl">${DEF[p].name}</div>`+grouped[p].map(b=>`<div class="bd-item ${selBdId==b.id?'sel':''}" onclick="selectBd(${JSON.stringify(b.id)})"><input type="checkbox" onclick="event.stopPropagation()" onchange="toggleSel(${JSON.stringify(b.id)},this.checked)" style="width:13px;height:13px;cursor:pointer;margin-top:1px;flex-shrink:0;"><div style="flex:1;min-width:0;"><div class="bd-item-name">${b.name}</div><div class="bd-item-meta">${b.uploadedAt}</div>${(b.sourceFiles||[]).length?`<div style="font-size:10px;margin-top:1px;">${b.sourceFiles.map(f=>f.name).join(', ')}</div>`:''}</div></div>`).join('')).join('');
+  if(selBdId){const b=backData.find(x=>x.id==selBdId);if(b)renderBdDetail(b);}
+}
+function toggleSel(id,checked){if(checked)bdSelIds.add(id);else bdSelIds.delete(id);}
+function deleteSelectedBd(){if(!bdSelIds.size){alert('삭제할 항목을 선택하세요.');return;}if(!confirm(`${bdSelIds.size}개 항목을 삭제할까요?`))return;backData=backData.filter(b=>!bdSelIds.has(b.id));bdSelIds.clear();if(!backData.find(b=>b.id==selBdId))selBdId=null;saveAll();renderBdList();}
+function selectBd(id){selBdId=id;const b=backData.find(x=>x.id==id);if(b)renderBdDetail(b);renderBdList();}
+
+function renderBdDetail(b){
+  const prod=DEF[b.product];if(!b.bdRows||!b.bdRows.length)b.bdRows=buildBdRows(prod,b.product,b.main,b.imp);
+  let h=`<div class="bd-detail-hdr"><div><div style="font-size:13px;font-weight:500;">${b.name} <span style="font-size:11px;font-weight:400;">${prod.formula}</span></div><div style="font-size:11px;margin-top:2px;">업로드: ${b.uploadedAt}${b.date?' · 분석일: '+b.date:''}</div></div><button class="btn red" style="font-size:11px;padding:2px 8px;" onclick="deleteSingleBd(${JSON.stringify(b.id)})">삭제</button></div>`;
+  h+=`<div style="overflow-x:auto;"><table class="bd-tbl"><thead><tr><th><div class="bd-th left" style="min-width:110px;">화학성분</div></th><th><div class="bd-th">측정값</div></th><th><div class="bd-th">단위</div></th><th><div class="bd-th">부등호</div></th><th><div class="bd-th">Spec값</div></th><th><div class="bd-th">마스터 단위</div></th><th><div class="bd-th">판정</div></th></tr></thead><tbody>`;
+  ['main','imp'].forEach(grp=>{
+    const rows=b.bdRows.filter(r=>r.group===grp);if(!rows.length)return;
+    h+=`<tr class="group-hd"><td colspan="7"><div class="bd-td-label" style="font-weight:500;">${grp==='main'?'주성분':'Impurity'}</div></td></tr>`;
+    rows.forEach(r=>{
+      const ri=b.bdRows.indexOf(r);const mu=specs[b.product][r.key]?.unit||'wt%';
+      const v=parseFloat(r.value),sv=parseFloat(r.specVal);
+      let pass=true;if(!isNaN(v)&&!isNaN(sv)){if(r.op==='≤'&&v>sv)pass=false;if(r.op==='≥'&&v<sv)pass=false;if(r.op==='<'&&v>=sv)pass=false;if(r.op==='>'&&v<=sv)pass=false;if(r.op==='='&&v!==sv)pass=false;}
+      h+=`<tr><td><div class="bd-td-label">${r.label}</div></td><td class="bd-td ${!pass?'fail-cell':''}"><input type="number" step="any" value="${isNaN(v)?'':fmtNum(v)}" placeholder="—" onchange="updateBdMeasured(${JSON.stringify(b.id)},${ri},parseFloat(this.value))"></td><td class="bd-td" style="font-size:11px;padding:5px 10px;">${mu}</td><td class="bd-td"><select onchange="updateBdField(${JSON.stringify(b.id)},${ri},'op',this.value)">${OPS.map(o=>`<option ${r.op===o?'selected':''}>${o}</option>`).join('')}</select></td><td class="bd-td"><input type="number" step="any" value="${isNaN(sv)?'':fmtNum(sv)}" placeholder="—" onchange="updateBdField(${JSON.stringify(b.id)},${ri},'specVal',parseFloat(this.value))"></td><td class="bd-td" style="font-size:11px;padding:5px 10px;">${mu}</td><td class="bd-td"><span class="verdict ${pass?'vp':'vf'}">${pass?'합격':'불합격'}</span></td></tr>`;
+    });
+  });
+  h+='</tbody></table></div>';
+  const srcFiles=(b.sourceFiles||[]).filter(f=>f.type&&(f.type.startsWith('image/')||f.type==='application/pdf'));
+  if(srcFiles.length){
+    h+=`<div class="orig-section"><div class="orig-section-lbl">원본 성적서</div>`;
+    srcFiles.forEach(sf=>{
+      const safeId=sf.name.replace(/[^a-z0-9]/gi,'_');
+      h+=`<div class="orig-file-block"><div class="orig-file-name">${sf.name}</div>`;
+      if(sf.type==='application/pdf')h+=`<div id="pdf-container-${safeId}" class="pdf-loading">PDF 렌더링 중...</div>`;
+      else h+=`<div class="orig-page-wrap"><img src="${sf.dataUrl}" alt="${sf.name}" loading="lazy"></div>`;
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  document.getElementById('bd-detail-inner').innerHTML=h;
+  srcFiles.filter(f=>f.type==='application/pdf').forEach(sf=>renderPdfAllPages(sf.dataUrl,sf.name));
+}
+
+async function renderPdfAllPages(dataUrl,fileName){
+  const safeId=fileName.replace(/[^a-z0-9]/gi,'_');const container=document.getElementById(`pdf-container-${safeId}`);if(!container)return;
+  try{
+    if(!window.pdfjsLib){await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
+    const binary=atob(dataUrl.split(',')[1]);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    const pdf=await window.pdfjsLib.getDocument({data:bytes}).promise;const total=pdf.numPages;container.innerHTML='';container.className='';
+    for(let pn=1;pn<=total;pn++){const page=await pdf.getPage(pn);const vp=page.getViewport({scale:1.6});const wrap=document.createElement('div');wrap.className='orig-page-wrap';if(total>1){const lbl=document.createElement('div');lbl.className='orig-page-label';lbl.textContent=`${pn} / ${total} 페이지`;wrap.appendChild(lbl);}const canvas=document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;canvas.style.width='100%';wrap.appendChild(canvas);container.appendChild(wrap);await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;}
+  }catch(e){if(container){container.className='';container.innerHTML='<div class="orig-page-wrap" style="padding:16px;font-size:12px;">PDF 미리보기를 불러올 수 없습니다.</div>';}}
+}
+function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`)){res();return;}const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+
+function updateBdMeasured(id,ri,val){const b=backData.find(x=>x.id==id);if(!b||!b.bdRows[ri])return;const r=b.bdRows[ri];const mu=specs[b.product][r.key]?.unit||r.unit;const cv=convertUnit(val,r.measuredUnit||r.unit,mu);r.value=isNaN(cv)?val:cv;r.measuredUnit=mu;if(r.group==='main')b.main[r.key]=r.value;else b.imp[r.key]=r.value;const ci=(compareData[b.product]||[]).findIndex(x=>x.name===b.name);if(ci>=0){if(r.group==='main')compareData[b.product][ci].main[r.key]=r.value;else compareData[b.product][ci].imp[r.key]=r.value;}saveAll();renderBdDetail(b);if(b.product===cur)renderCompare();}
+function updateBdField(id,ri,field,val){const b=backData.find(x=>x.id==id);if(!b||!b.bdRows[ri])return;b.bdRows[ri][field]=val;const r=b.bdRows[ri];if(field==='specVal')specs[b.product][r.key].val=val;if(field==='op')specs[b.product][r.key].op=val;saveAll();renderBdDetail(b);if(b.product===cur)renderCompare();}
+function deleteSingleBd(id){if(!confirm('이 데이터를 삭제할까요?'))return;backData=backData.filter(b=>b.id!=id);if(selBdId==id){selBdId=null;document.getElementById('bd-detail-inner').innerHTML='<div class="bd-empty">목록에서 업체를 선택하세요</div>';}saveAll();renderBdList();}
+
+async function runReport(){
+  const rows=getRows();const prod=getProd();if(!rows.length){alert('먼저 데이터를 입력하거나 샘플을 추가하세요.');return;}
+  const box=document.getElementById('rep-box');const spin=document.getElementById('rep-spin');const bd=document.getElementById('rep-bd');
+  box.style.display='block';spin.style.display='inline-block';bd.textContent='분석 중...';
+  let txt=`${prod.name}(${prod.formula}) 품질 비교\n공급사: ${rows.map(r=>r.name).join(', ')}\n\n주성분:\n`;
+  prod.main.forEach(m=>{const s=specs[cur][m.key];txt+=`${m.label} [마스터 Spec: ${s.op} ${s.val} ${s.unit}]\n`;rows.forEach(r=>{const ss=getSupSpec(r.name,m.key);txt+=`  ${r.name}: 측정=${r.main[m.key]??'-'} ${s.unit}${ss?' / 공급사Spec:'+ss.op+ss.val:''}\n`;});});
+  txt+='\nImpurity:\n';prod.imp.forEach(im=>{const s=specs[cur][im.key];txt+=`${im.label} [마스터 Spec: ${s.op} ${s.val} ${s.unit}]\n`;rows.forEach(r=>{const ss=getSupSpec(r.name,im.key);txt+=`  ${r.name}: 측정=${r.imp[im.key]??'-'} ${s.unit}${ss?' / 공급사Spec:'+ss.op+ss.val:''}\n`;});});
+  try{const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:`다음 ${prod.name} 화학분석 비교 데이터를 전문적으로 분석해주세요. 한국어로 답변.\n\n${txt}\n\n1. 합격/불합격 판정 요약\n2. 공급사별 품질 특징 및 강약점\n3. 마스터 대비 타이트한 공급사 Spec 항목 평가\n4. 배터리 소재 관점 구매 추천`}]})});const d=await resp.json();spin.style.display='none';bd.textContent=(d.content||[]).map(c=>c.text||'').join('')||'결과 없음';}catch(e){spin.style.display='none';bd.textContent='오류 발생';}
+}
+
+function exportExcel(){
+  const rows=getRows();const prod=getProd();if(!rows.length){alert('내보낼 데이터가 없습니다.');return;}
+  const wb=XLSX.utils.book_new();const wd=[['항목','마스터 Spec',...rows.map(r=>r.name)]];
+  wd.push(['분석일자','',...rows.map(r=>r.date||'')]);wd.push(['Note','',...rows.map(r=>r.note||'')]);wd.push(['판정','',...rows.map(r=>checkPass(r,cur)?'합격':'불합격')]);wd.push(['--- 주성분 ---']);
+  prod.main.forEach(m=>{const s=specs[cur][m.key];wd.push([m.label,`${s.op} ${s.val} ${s.unit}`,...rows.map(r=>r.main[m.key]??'')]);});wd.push(['--- Impurity ---']);
+  prod.imp.forEach(im=>{const s=specs[cur][im.key];wd.push([im.label,`${s.op} ${s.val} ${s.unit}`,...rows.map(r=>r.imp[im.key]??'')]);});
+  const ws=XLSX.utils.aoa_to_sheet(wd);ws['!cols']=[{wch:18},{wch:18},...rows.map(()=>({wch:14}))];XLSX.utils.book_append_sheet(wb,ws,prod.name);XLSX.writeFile(wb,`${prod.name}_비교_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function addSupplierManual(){if(!compareData[cur])compareData[cur]=[];const n=compareData[cur].length;const prod=getProd();const row={name:`공급사 ${String.fromCharCode(65+n)}`,date:'',note:'',main:{},imp:{}};prod.main.forEach(m=>row.main[m.key]='');prod.imp.forEach(im=>row.imp[im.key]='');compareData[cur].push(row);renderCompare();}
+function delSupplier(i){if(!confirm(`"${compareData[cur][i].name}" 삭제할까요?`))return;compareData[cur].splice(i,1);renderCompare();}
+function clearCompare(){compareData={};files=[];mediaFileStore=[];document.getElementById('file-list').innerHTML='';document.getElementById('ocr-btn').style.display='none';document.getElementById('ocr-box').style.display='none';document.getElementById('rep-box').style.display='none';clearCompareView();renderSpecPanel();}
+
+const SAMPLES={NiSO4:[{name:'공급사 A',date:'2025-03-10',note:'정기 구매처',main:{Ni:22.3},imp:{Co:0.003,Mn:0.002,Fe:0.0008,Cu:0.0005,Zn:0.0007,Na:0.003,Ca:0.002,Mg:0.001}},{name:'공급사 B',date:'2025-03-12',note:'신규 검토',main:{Ni:21.8},imp:{Co:0.006,Mn:0.004,Fe:0.0015,Cu:0.0012,Zn:0.002,Na:0.007,Ca:0.004,Mg:0.003}},{name:'공급사 C',date:'2025-03-15',note:'',main:{Ni:22.5},imp:{Co:0.002,Mn:0.001,Fe:0.0005,Cu:0.0003,Zn:0.0004,Na:0.002,Ca:0.0015,Mg:0.0008}}],CoSO4:[{name:'공급사 A',date:'2025-03-10',note:'',main:{Co:20.8},imp:{Ni:0.003,Mn:0.002,Fe:0.0007,Cu:0.0004,Na:0.003,Ca:0.002,Mg:0.001}},{name:'공급사 B',date:'2025-03-11',note:'',main:{Co:20.3},imp:{Ni:0.007,Mn:0.005,Fe:0.002,Cu:0.0015,Na:0.008,Ca:0.005,Mg:0.003}},{name:'공급사 C',date:'2025-03-14',note:'',main:{Co:21.1},imp:{Ni:0.002,Mn:0.001,Fe:0.0005,Cu:0.0003,Na:0.002,Ca:0.0015,Mg:0.0007}}],MnSO4:[{name:'공급사 A',date:'2025-03-08',note:'',main:{Mn:32.1},imp:{Fe:0.0015,Ni:0.002,Co:0.002,Cu:0.0008,Na:0.003,Ca:0.002,Zn:0.0015}},{name:'공급사 B',date:'2025-03-09',note:'',main:{Mn:31.6},imp:{Fe:0.003,Ni:0.004,Co:0.004,Cu:0.0015,Na:0.006,Ca:0.004,Zn:0.003}},{name:'공급사 C',date:'2025-03-13',note:'',main:{Mn:32.5},imp:{Fe:0.001,Ni:0.0015,Co:0.0015,Cu:0.0005,Na:0.002,Ca:0.0015,Zn:0.001}}],Li2CO3:[{name:'공급사 A',date:'2025-03-11',note:'',main:{'Li2CO3':99.7},imp:{Na:0.002,K:0.0008,Ca:0.0015,Mg:0.0007,Fe:0.0008,Cu:0.0003,SO4:0.007,Cl:0.003}},{name:'공급사 B',date:'2025-03-12',note:'',main:{'Li2CO3':99.3},imp:{Na:0.005,K:0.0015,Ca:0.003,Mg:0.0012,Fe:0.0015,Cu:0.0006,SO4:0.015,Cl:0.007}},{name:'공급사 C',date:'2025-03-16',note:'',main:{'Li2CO3':99.8},imp:{Na:0.0015,K:0.0005,Ca:0.001,Mg:0.0005,Fe:0.0005,Cu:0.0002,SO4:0.005,Cl:0.002}}]};
+
+function addSample(){
+  const prod=getProd();const now=new Date().toLocaleString('ko-KR');
+  compareData[cur]=JSON.parse(JSON.stringify(SAMPLES[cur]||[]));
+  compareData[cur].forEach((s,si)=>{
+    const e={id:Date.now()+Math.random(),name:s.name,product:cur,uploadedAt:now,date:s.date,note:s.note,main:s.main,imp:s.imp,sourceFiles:[]};
+    e.bdRows=buildBdRows(prod,cur,s.main,s.imp);
+    /* 공급사 B: 일부 Spec을 마스터보다 타이트하게 (시연용) */
+    if(si===1){
+      e.bdRows.forEach(r=>{const ms=specs[cur][r.key];if(!ms)return;if(ms.op==='≥')r.specVal=parseFloat((ms.val*1.05).toPrecision(4));if(ms.op==='≤')r.specVal=parseFloat((ms.val*0.6).toPrecision(4));});
+    }
+    /* 공급사 A: 마스터에 없는 Si 성분 추가 (시연용) */
+    if(si===0&&!e.bdRows.find(r=>r.key==='Si')){
+      e.bdRows.push({key:'Si',label:'Si',group:'imp',op:'≤',specVal:0.001,specUnit:'wt%',unit:'wt%',measuredUnit:'wt%',value:0.0005});
+    }
+    const bi=backData.findIndex(b=>b.name===s.name&&b.product===cur);if(bi>=0)backData[bi]=e;else backData.push(e);
+  });
+  saveAll();renderCompare();
+}
+// Expose all functions to global scope for inline HTML handlers
+window.addSample=addSample;
+window.addSupplierManual=addSupplierManual;
+window.clearCompare=clearCompare;
+window.delSupplier=delSupplier;
+window.deleteSelectedBd=deleteSelectedBd;
+window.deleteSingleBd=deleteSingleBd;
+window.exportExcel=exportExcel;
+window.removeFile=removeFile;
+window.runOCR=runOCR;
+window.runReport=runReport;
+window.selectBd=selectBd;
+window.setProd=setProd;
+window.switchTab=switchTab;
+window.toggleSpec=toggleSpec;
+window.onFiles=onFiles;
+window.onDrop=onDrop;
+window.updateCompareVal=updateCompareVal;
+window.updateBdMeasured=updateBdMeasured;
+window.updateBdField=updateBdField;
+window.onSpecUnitChange=onSpecUnitChange;
+window.onSpecValChange=onSpecValChange;
+window.toggleSel=toggleSel;
+
+</script>
+
+<div id="lock-screen" style="position:fixed;inset:0;background:#f8f8f6;display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="width:320px;text-align:center;">
+    <div style="width:48px;height:48px;margin:0 auto 20px;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div style="font-size:16px;font-weight:500;color:#111;margin-bottom:6px;">화학제품 품질 분석 비교</div>
+    <div style="font-size:13px;color:#888;margin-bottom:28px;">비밀번호를 입력하세요</div>
+    <div style="position:relative;margin-bottom:12px;">
+      <input id="pw-input" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')unlock()"
+        style="width:100%;padding:11px 44px 11px 14px;border:1px solid #ddd;border-radius:10px;font-size:14px;outline:none;background:#fff;color:#111;font-family:inherit;box-sizing:border-box;">
+      <button onclick="togglePw()" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#aaa;padding:4px;">
+        <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button onclick="unlock()" style="width:100%;padding:11px;background:#111;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;">확인</button>
+    <div id="lock-err" style="font-size:12px;color:#E24B4A;margin-top:10px;min-height:18px;"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CORRECT='bcedee130f1bf69ab62f5a22ad0f0a9723655187065737ab97f7e4131eee68b4';
+  function sha256hex(str){
+    return crypto.subtle.digest('SHA-256',new TextEncoder().encode(str))
+      .then(h=>[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join(''));
+  }
+  async function unlock(){
+    const val=document.getElementById('pw-input').value;
+    if(!val)return;
+    const h=await sha256hex(val);
+    if(h===CORRECT){
+      document.getElementById('lock-screen').style.display='none';
+      sessionStorage.setItem('unlocked','1');
+    } else {
+      const inp=document.getElementById('pw-input');
+      document.getElementById('lock-err').textContent='비밀번호가 올바르지 않습니다.';
+      inp.style.borderColor='#E24B4A';
+      inp.value='';
+      setTimeout(()=>{inp.style.borderColor='#ddd';},1500);
+      inp.focus();
+    }
+  }
+  function togglePw(){
+    const inp=document.getElementById('pw-input');
+    inp.type=inp.type==='password'?'text':'password';
+  }
+  window.unlock=unlock;
+  window.togglePw=togglePw;
+  if(sessionStorage.getItem('unlocked')==='1'){
+    document.getElementById('lock-screen').style.display='none';
+  } else {
+    setTimeout(()=>document.getElementById('pw-input').focus(),150);
+  }
+})();
+</script>
+</body></html>
